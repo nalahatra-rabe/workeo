@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workeo — Trouve ton job avec l'IA</title>
+  <meta name="description" content="Workeo analyse ton CV, explore le web et te trouve les meilleures offres d'emploi et d'alternance." />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <!-- ═══ Sidebar ═══ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">W</div>
+        <div>
+          <div class="brand-name">Workeo</div>
+          <div class="brand-sub">Job AI</div>
+        </div>
+      </div>
+
+      <button class="nav-item active" data-view="dashboard"><span class="ico">📊</span> Tableau de bord</button>
+      <button class="nav-item" data-view="search"><span class="ico">🔍</span> Recherche</button>
+      <button class="nav-item" data-view="jobs"><span class="ico">💼</span> Offres</button>
+      <button class="nav-item" data-view="applications"><span class="ico">📬</span> Candidatures</button>
+      <button class="nav-item" data-view="profile"><span class="ico">👤</span> Mon profil</button>
+
+      <div class="nav-spacer"></div>
+
+      <div class="sidebar-foot">
+        <div class="ai-badge" id="aiBadge">
+          <span class="dot" id="aiDot"></span>
+          <span id="aiText">Vérification de l'IA…</span>
+        </div>
+        <button class="nav-item" id="themeToggle"><span class="ico">🌙</span> Thème</button>
+      </div>
+    </aside>
+
+    <!-- ═══ Main ═══ -->
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Tableau de bord</h1>
+          <div class="sub" id="viewSub">Votre assistant de recherche d'emploi</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn sm ghost" id="btnGeoloc" title="Utiliser ma position">📍 Localisation</button>
+          <button class="btn sm primary" id="btnQuickSearch">⚡ Rechercher</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- ─── Dashboard ─── -->
+        <section class="view active" id="view-dashboard">
+          <div id="dashboardEmpty">
+            <div class="hero">
+              <h1>Trouve le job qui te <span class="grad">correspond vraiment</span></h1>
+              <p>Workeo analyse ton CV avec l'IA, explore le web, filtre et classe les offres d'emploi et d'alternance pour toi.</p>
+              <div style="margin-top:22px"><button class="btn primary" id="btnStart">🚀 Commencer — créer mon profil</button></div>
+            </div>
+            <div class="steps">
+              <div class="step-card"><div class="num">1</div><h4>Crée ton profil</h4><p>Quelques infos + ton CV, rien de plus.</p></div>
+              <div class="step-card"><div class="num">2</div><h4>L'IA analyse</h4><p>Compétences, expériences et catégorie détectées automatiquement.</p></div>
+              <div class="step-card"><div class="num">3</div><h4>Recherche web</h4><p>Les agents scannent plusieurs sources en parallèle.</p></div>
+              <div class="step-card"><div class="num">4</div><h4>Meilleurs matchs</h4><p>Score de compatibilité + explication claire.</p></div>
+            </div>
+          </div>
+
+          <div id="dashboardFull" style="display:none">
+            <div class="grid cols-4" id="statsGrid"></div>
+            <div class="grid cols-2" style="margin-top:18px">
+              <div class="card">
+                <div class="card-head"><h2>🧠 Profil analysé par l'IA</h2></div>
+                <div id="profileSummary"></div>
+              </div>
+              <div class="card">
+                <div class="card-head"><h2>🏷️ Catégories & mots-clés</h2></div>
+                <div id="profileCategories"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>⭐ Recommandations pour vous</h2>
+                <div class="grow"></div>
+                <button class="btn sm primary" id="btnRefreshRecos">Actualiser</button>
+              </div>
+              <div id="recosList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── Recherche ─── -->
+        <section class="view" id="view-search">
+          <div class="card">
+            <div class="card-head"><h2>🔍 Nouvelle recherche</h2></div>
+            <div class="grid cols-2">
+              <label class="field"><span>Mots-clés / poste</span>
+                <input class="input" id="searchQuery" placeholder="ex: développeur web, aide-soignant, alternance marketing…" />
+              </label>
+              <label class="field"><span>Lieu</span>
+                <input class="input" id="searchLocation" placeholder="ex: Paris, Lyon, Remote…" />
+              </label>
+            </div>
+            <div class="grid cols-3">
+              <label class="field"><span>Type de contrat</span>
+                <select class="input" id="searchContract">
+                  <option value="">Tous</option><option>CDI</option><option>CDD</option>
+                  <option>Stage</option><option>Alternance</option><option>Freelance</option><option>Intérim</option>
+                </select>
+              </label>
+              <label class="field"><span>Télétravail uniquement</span>
+                <select class="input" id="searchRemote"><option value="false">Non</option><option value="true">Oui</option></select>
+              </label>
+              <label class="field"><span>Sources</span>
+                <select class="input" id="searchSources" multiple size="1" style="height:44px"></select>
+              </label>
+            </div>
+            <button class="btn primary" id="btnSearch">🚀 Lancer la recherche (agents IA)</button>
+          </div>
+
+          <div class="card" id="searchProgress" style="display:none">
+            <div class="card-head"><h2>⚙️ Agents au travail…</h2></div>
+            <div class="agent-steps" id="agentSteps"></div>
+          </div>
+
+          <div id="searchResults" style="display:none">
+            <div class="toolbar" style="margin-top:18px">
+              <div class="grow"><strong id="resultsCount"></strong> <span class="sub" id="resultsMeta"></span></div>
+              <select class="input" id="sortResults" style="width:auto">
+                <option value="score">Trier : compatibilité</option>
+                <option value="recent">Trier : plus récentes</option>
+                <option value="salary">Trier : salaire</option>
+              </select>
+            </div>
+            <div id="resultsList" class="grid" style="gap:14px"></div>
+          </div>
+        </section>
+
+        <!-- ─── Offres (explorateur) ─── -->
+        <section class="view" id="view-jobs">
+          <div class="toolbar">
+            <input class="input grow" id="exploreQuery" placeholder="Rechercher dans les offres déjà collectées…" />
+            <select class="input" id="exploreCategory" style="width:auto"><option value="">Toutes catégories</option></select>
+            <button class="btn" id="btnExplore">Filtrer</button>
+          </div>
+          <div id="exploreList" class="grid" style="gap:14px"></div>
+        </section>
+
+        <!-- ─── Candidatures ─── -->
+        <section class="view" id="view-applications">
+          <div class="card-head"><h2>📬 Suivi de vos candidatures</h2></div>
+          <div class="kanban" id="kanban"></div>
+        </section>
+
+        <!-- ─── Profil ─── -->
+        <section class="view" id="view-profile">
+          <div class="grid cols-2">
+            <div class="card">
+              <div class="card-head"><h2>👤 Informations personnelles</h2></div>
+              <label class="field"><span>Nom complet</span><input class="input" id="pName" /></label>
+              <div class="grid cols-2">
+                <label class="field"><span>Email</span><input class="input" id="pEmail" type="email" /></label>
+                <label class="field"><span>Téléphone</span><input class="input" id="pPhone" /></label>
+              </div>
+              <label class="field"><span>Localisation</span><input class="input" id="pLocation" /></label>
+              <label class="field"><span>Titre / poste recherché</span><input class="input" id="pHeadline" /></label>
+              <div class="grid cols-2">
+                <label class="field"><span>Télétravail</span>
+                  <select class="input" id="pRemote">
+                    <option value="any">Peu importe</option><option value="remote">Télétravail</option>
+                    <option value="hybrid">Hybride</option><option value="on-site">Sur site</option>
+                  </select>
+                </label>
+                <label class="field"><span>Salaire min. annuel (€)</span><input class="input" id="pSalary" type="number" /></label>
+              </div>
+              <button class="btn primary" id="btnSaveProfile">💾 Enregistrer</button>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h2>📄 Mon CV</h2></div>
+              <div class="dropzone" id="dropzone">
+                <div class="big">📎</div>
+                <p><strong>Glissez votre CV ici</strong> ou cliquez</p>
+                <p class="hint">PDF, DOCX ou TXT — analyse automatique par l'IA</p>
+                <input type="file" id="cvInput" accept=".pdf,.docx,.doc,.txt,.md" style="display:none" />
+              </div>
+              <div id="cvInfo" style="margin-top:14px"></div>
+              <button class="btn" id="btnReanalyze" style="margin-top:12px">🧠 Ré-analyser avec l'IA</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>🔎 Résultat de l'analyse IA</h2></div>
+            <div id="analysisResult"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ Onboarding modal ═══ -->
+  <div class="modal-backdrop" id="onboarding">
+    <div class="modal">
+      <h2 style="font-size:22px;margin-bottom:6px">Bienvenue sur Workeo 👋</h2>
+      <p style="color:var(--text-dim);margin-bottom:20px">Créez votre profil en 30 secondes. Vous pourrez ajouter votre CV juste après.</p>
+      <label class="field"><span>Nom complet *</span><input class="input" id="obName" placeholder="ex: Amina Raharison" /></label>
+      <div class="grid cols-2">
+        <label class="field"><span>Email</span><input class="input" id="obEmail" type="email" /></label>
+        <label class="field"><span>Ville</span><input class="input" id="obLocation" placeholder="ex: Antananarivo" /></label>
+      </div>
+      <label class="field"><span>Vous cherchez…</span><input class="input" id="obHeadline" placeholder="ex: Développeur junior, alternance marketing…" /></label>
+      <div class="grid cols-2">
+        <label class="field"><span>Télétravail</span>
+          <select class="input" id="obRemote"><option value="any">Peu importe</option><option value="remote">Télétravail</option><option value="hybrid">Hybride</option></select>
+        </label>
+        <label class="field"><span>Contrat visé</span>
+          <select class="input" id="obContract">
+            <option value="">Peu importe</option><option>CDI</option><option>CDD</option>
+            <option>Stage</option><option>Alternance</option><option>Freelance</option>
+          </select>
+        </label>
+      </div>
+      <button class="btn primary" id="btnCreateProfile" style="width:100%">Créer mon profil →</button>
+    </div>
+  </div>
+
+  <!-- ═══ Job detail modal ═══ -->
+  <div class="modal-backdrop" id="jobModal">
+    <div class="modal" id="jobModalBody"></div>
+  </div>
+
+  <div class="toast-wrap" id="toasts"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

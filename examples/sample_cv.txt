@@ -1,0 +1,27 @@
+Amina Raharison
+Développeuse Fullstack Junior
+amina.raharison@email.com — +33 6 12 34 56 78
+Paris
+
+PROFIL
+Développeuse web passionnée, spécialisée en React, TypeScript et Node.js.
+2 ans d'expérience en développement d'applications web. Autonome, rigoureuse, esprit d'équipe.
+
+COMPÉTENCES
+JavaScript, TypeScript, React, Node.js, HTML, CSS, PostgreSQL, Docker, Git, REST API
+
+EXPÉRIENCES
+Développeuse Front-end — Startup Beta (2022 - 2024)
+Développement d'interfaces React, intégration d'API REST, tests.
+
+Stage Développeur Web — Agence Alpha (2021)
+
+FORMATION
+Master Informatique — Université de Paris (2022)
+Licence Informatique — Université de Paris (2020)
+
+LANGUES
+Français (natif), Anglais (courant)
+
+CENTRES D'INTÉRÊT
+Open source, veille technologique
