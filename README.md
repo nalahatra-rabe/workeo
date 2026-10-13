@@ -15,14 +15,14 @@ TypeScript** (Vite, Tailwind CSS, shadcn/ui, icônes Lucide) servie par le backe
   recherches et candidatures **clairement séparées** par profil.
 - 📄 **Upload de CV** (PDF, DOCX, TXT) avec **extraction de texte** et **analyse IA**.
 - 🧠 **Catégorisation du profil** — compétences, séniorité, domaines, postes cibles, mots-clés.
-- 🌐 **Deep search / web scraping** — interroge plusieurs sources **en parallèle**
-  (Arbeitnow, Remotive, RemoteOK + source démo hors-ligne).
+- 🌐 **Deep search / web scraping** — interroge **13 sources d'offres en parallèle**
+  (API JSON, flux RSS et scraping HTML), dont **Portal Job Madagascar** et **LinkedIn**.
 - 🏷️ **Agent de catégorisation des offres** — nettoie, déduplique, détecte catégorie,
   compétences, contrat, télétravail et salaire.
 - ⭐ **Score de compatibilité** (0-100) avec **explications concrètes** pour chaque offre.
 - 📬 **Suivi de candidatures** (kanban : sauvegardées → postulées → entretiens → offres).
-- 🎨 **UI moderne** — palette plate bleu & blanc, icônes Lucide, onboarding animé,
-  thème clair/sombre, géolocalisation, notifications navigateur.
+- 🎨 **UI moderne** — police **Poppins**, palette plate bleu & blanc, icônes Lucide,
+  onboarding animé, thème clair/sombre, géolocalisation, notifications navigateur.
 - 🔌 **Fonctionne sans IA externe** : si aucun LLM n'est configuré, un moteur
   heuristique local prend le relais. Avec **Ollama** ou une **API compatible OpenAI**,
   les agents utilisent un vrai LLM.
@@ -155,8 +155,45 @@ Navigateur (SPA)  ──►  Axum (API + statique)
         ┌─────────────────┼──────────────────────┐
         ▼                 ▼                      ▼
    Agents IA         Scraper (parallèle)     SQLite (SQLx)
-   orchestrés        Arbeitnow / Remotive    profils, offres,
-                     RemoteOK / Démo        matchs, candidatures
+   orchestrés        API JSON / RSS /        profils, offres,
+                     scraping HTML           matchs, candidatures
+        │
+        ▼
+   LLM (Ollama / OpenAI / heuristiques)
+```
+
+Détails complets dans [`SPEC.md`](./SPEC.md).
+
+---
+
+## 🌐 Sources d'offres
+
+Toutes les sources sont interrogées **en parallèle** ; une source en échec n'interrompt
+pas les autres (l'erreur est remontée à l'interface). Configurez la liste par défaut
+avec `SCRAPE_SOURCES` ou choisissez-les dans l'écran de recherche.
+
+| Source | Type | Zone |
+|--------|------|------|
+| **Arbeitnow** | API JSON | Europe / Allemagne |
+| **Remotive** | API JSON | Télétravail mondial |
+| **RemoteOK** | API JSON | Télétravail mondial |
+| **Jobicy** | API JSON | Télétravail mondial |
+| **Himalayas** | API JSON | Télétravail mondial |
+| **We Work Remotely** | Flux RSS | Télétravail mondial |
+| **Portal Job Madagascar** | API JSON | **Madagascar** |
+| **Tanitjobs** | HTML | Tunisie / francophonie |
+| **LinkedIn** | HTML (endpoint public) | Mondial |
+| **Welcome to the Jungle** | API JSON | France / Europe |
+| **HelloWork** | HTML | France |
+| **Adzuna** 🔑 | API JSON | International (hors Madagascar) |
+| **Jooble** 🔑 | API JSON | International |
+
+🔑 = nécessite une clé API gratuite (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY` ou `JOOBLE_API_KEY`).
+
+> **Transparence** : les sources comme **LinkedIn** exposent un endpoint public mais
+> **limitent fortement** le débit (réponses `429`). Workeo les interroge en « best effort »,
+> avec repli gracieux. **Indeed** et **Glassdoor** bloquent tout accès automatisé
+> (Cloudflare / CGU) — ils ne sont volontairement pas inclus.
         │
         ▼
    LLM (Ollama / OpenAI / heuristiques)

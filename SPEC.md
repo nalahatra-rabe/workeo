@@ -77,7 +77,7 @@ L'application doit être **compréhensible en 2 minutes** :
 │ Profile Cat.  │          │ Remotive (API)  │          │ jobs             │
 │ Job Cat.      │          │ RemoteOK (API)  │          │ matches          │
 │ Matcher       │          │ Generic HTML    │          │ applications     │
-│ Orchestrator  │          │ Demo (offline)  │          │ search_runs      │
+│ Orchestrator  │          │ + 10 autres     │          │ search_runs      │
 └───────┬───────┘          └─────────────────┘          └──────────────────┘
         │
         ▼
@@ -99,6 +99,13 @@ L'application doit être **compréhensible en 2 minutes** :
 | IA           | Client LLM pluggable + fallback     | Marche **avec ou sans** clé/LLM             |
 | Auth         | Argon2id + JWT (jsonwebtoken)       | Comptes multi-utilisateurs sécurisés        |
 | Front        | React + TS (Vite/Tailwind/shadcn/ui)| UX premium, build → `web/` servi par Axum   |
+
+### Sources d'offres (13)
+- **API JSON** : Arbeitnow, Remotive, RemoteOK, Jobicy, Himalayas, **Portal Job Madagascar**, Welcome to the Jungle (Algolia), Adzuna 🔑, Jooble 🔑.
+- **RSS** : We Work Remotely (parseur `quick-xml`).
+- **HTML (scraper)** : LinkedIn (endpoint public, rate-limité), HelloWork, Tanitjobs.
+- 🔑 = clé API optionnelle (`ADZUNA_*`, `JOOBLE_API_KEY`). Chaque source est isolée : une erreur (429, 5xx, site SPA) n'empêche pas les autres et est remontée via `source_errors`.
+- **Non supportés volontairement** : Indeed, Glassdoor (anti-bot Cloudflare + CGU).
 
 ### Pourquoi si rapide ?
 - **Recherche parallèle** : toutes les sources sont interrogées en `join_all` (concurrence).

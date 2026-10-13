@@ -70,7 +70,7 @@ impl Config {
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(15),
             scrape_sources: env::var("SCRAPE_SOURCES")
-                .unwrap_or_else(|_| "arbeitnow,remotive,remoteok,demo".into())
+                .unwrap_or_else(|_| "arbeitnow,remotive,remoteok".into())
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
