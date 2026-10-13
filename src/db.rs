@@ -38,8 +38,20 @@ pub async fn init_pool(database_url: &str) -> anyhow::Result<SqlitePool> {
 
 async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
     let schema = r#"
+    CREATE TABLE IF NOT EXISTS users (
+        id            TEXT PRIMARY KEY,
+        email         TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        full_name     TEXT NOT NULL,
+        avatar_url    TEXT,
+        created_at    TEXT NOT NULL,
+        updated_at    TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS profiles (
         id                TEXT PRIMARY KEY,
+        user_id           TEXT NOT NULL DEFAULT '',
+        name              TEXT NOT NULL DEFAULT 'Mon profil',
         full_name         TEXT NOT NULL,
         email             TEXT,
         phone             TEXT,
@@ -61,9 +73,12 @@ async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
         salary_min        INTEGER,
         cv_filename       TEXT,
         cv_text           TEXT,
+        is_default        INTEGER NOT NULL DEFAULT 0,
         created_at        TEXT NOT NULL,
         updated_at        TEXT NOT NULL
     );
+    CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
+    CREATE INDEX IF NOT EXISTS idx_profiles_user_default ON profiles(user_id, is_default);
 
     CREATE TABLE IF NOT EXISTS jobs (
         id              TEXT PRIMARY KEY,
@@ -145,11 +160,79 @@ fn from_json<T: serde::de::DeserializeOwned + Default>(s: Option<&str>) -> T {
     s.and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default()
 }
 
+// ─── Utilisateurs ───────────────────────────────────────────
+
+pub fn row_to_user(row: &sqlx::sqlite::SqliteRow) -> crate::models::User {
+    crate::models::User {
+        id: row.get("id"),
+        email: row.get("email"),
+        full_name: row.get("full_name"),
+        avatar_url: row.get("avatar_url"),
+        created_at: parse_dt(row.get::<String, _>("created_at").as_str()),
+        updated_at: parse_dt(row.get::<String, _>("updated_at").as_str()),
+    }
+}
+
+pub async fn insert_user(
+    pool: &SqlitePool,
+    id: &str,
+    email: &str,
+    password_hash: &str,
+    full_name: &str,
+) -> anyhow::Result<crate::models::User> {
+    let now = Utc::now().to_rfc3339();
+    sqlx::query(
+        r#"INSERT INTO users (id, email, password_hash, full_name, created_at, updated_at)
+           VALUES (?1,?2,?3,?4,?5,?5)"#,
+    )
+    .bind(id)
+    .bind(email)
+    .bind(password_hash)
+    .bind(full_name)
+    .bind(&now)
+    .execute(pool)
+    .await?;
+    get_user(pool, id).await?.ok_or_else(|| anyhow::anyhow!("utilisateur créé introuvable"))
+}
+
+pub async fn get_user(pool: &SqlitePool, id: &str) -> anyhow::Result<Option<crate::models::User>> {
+    let row = sqlx::query("SELECT * FROM users WHERE id = ?1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.as_ref().map(row_to_user))
+}
+
+/// Renvoie (user, password_hash) pour l'authentification.
+pub async fn get_user_with_hash(
+    pool: &SqlitePool,
+    email: &str,
+) -> anyhow::Result<Option<(crate::models::User, String)>> {
+    let row = sqlx::query("SELECT * FROM users WHERE email = ?1")
+        .bind(email.to_lowercase())
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.as_ref().map(|r| {
+        let hash: String = r.get("password_hash");
+        (row_to_user(r), hash)
+    }))
+}
+
+pub async fn email_exists(pool: &SqlitePool, email: &str) -> anyhow::Result<bool> {
+    let n: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE email = ?1")
+        .bind(email.to_lowercase())
+        .fetch_one(pool)
+        .await?;
+    Ok(n > 0)
+}
+
 // ─── Profils ────────────────────────────────────────────────
 
 pub fn row_to_profile(row: &sqlx::sqlite::SqliteRow) -> Profile {
     Profile {
         id: row.get("id"),
+        user_id: row.get("user_id"),
+        name: row.get("name"),
         full_name: row.get("full_name"),
         email: row.get("email"),
         phone: row.get("phone"),
@@ -173,6 +256,7 @@ pub fn row_to_profile(row: &sqlx::sqlite::SqliteRow) -> Profile {
         salary_min: row.get("salary_min"),
         cv_filename: row.get("cv_filename"),
         cv_text: row.get("cv_text"),
+        is_default: row.get::<i64, _>("is_default") != 0,
         created_at: parse_dt(row.get::<String, _>("created_at").as_str()),
         updated_at: parse_dt(row.get::<String, _>("updated_at").as_str()),
     }
@@ -181,13 +265,15 @@ pub fn row_to_profile(row: &sqlx::sqlite::SqliteRow) -> Profile {
 pub async fn insert_profile(pool: &SqlitePool, p: &Profile) -> anyhow::Result<()> {
     sqlx::query(
         r#"INSERT INTO profiles
-        (id, full_name, email, phone, location, headline, summary, seniority, years_experience,
-         skills, languages, education, experiences, domains, target_roles, search_keywords,
-         category, remote_preference, contract_types, salary_min, cv_filename, cv_text,
-         created_at, updated_at)
-        VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24)"#,
+        (id, user_id, name, full_name, email, phone, location, headline, summary, seniority,
+         years_experience, skills, languages, education, experiences, domains, target_roles,
+         search_keywords, category, remote_preference, contract_types, salary_min, cv_filename,
+         cv_text, is_default, created_at, updated_at)
+        VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27)"#,
     )
     .bind(&p.id)
+    .bind(&p.user_id)
+    .bind(&p.name)
     .bind(&p.full_name)
     .bind(&p.email)
     .bind(&p.phone)
@@ -209,6 +295,7 @@ pub async fn insert_profile(pool: &SqlitePool, p: &Profile) -> anyhow::Result<()
     .bind(p.salary_min)
     .bind(&p.cv_filename)
     .bind(&p.cv_text)
+    .bind(p.is_default as i64)
     .bind(p.created_at.to_rfc3339())
     .bind(p.updated_at.to_rfc3339())
     .execute(pool)
@@ -219,14 +306,15 @@ pub async fn insert_profile(pool: &SqlitePool, p: &Profile) -> anyhow::Result<()
 pub async fn update_profile(pool: &SqlitePool, p: &Profile) -> anyhow::Result<()> {
     sqlx::query(
         r#"UPDATE profiles SET
-            full_name=?2, email=?3, phone=?4, location=?5, headline=?6, summary=?7,
-            seniority=?8, years_experience=?9, skills=?10, languages=?11, education=?12,
-            experiences=?13, domains=?14, target_roles=?15, search_keywords=?16, category=?17,
-            remote_preference=?18, contract_types=?19, salary_min=?20, cv_filename=?21, cv_text=?22,
-            updated_at=?23
+            name=?2, full_name=?3, email=?4, phone=?5, location=?6, headline=?7, summary=?8,
+            seniority=?9, years_experience=?10, skills=?11, languages=?12, education=?13,
+            experiences=?14, domains=?15, target_roles=?16, search_keywords=?17, category=?18,
+            remote_preference=?19, contract_types=?20, salary_min=?21, cv_filename=?22, cv_text=?23,
+            is_default=?24, updated_at=?25
         WHERE id=?1"#,
     )
     .bind(&p.id)
+    .bind(&p.name)
     .bind(&p.full_name)
     .bind(&p.email)
     .bind(&p.phone)
@@ -248,10 +336,75 @@ pub async fn update_profile(pool: &SqlitePool, p: &Profile) -> anyhow::Result<()
     .bind(p.salary_min)
     .bind(&p.cv_filename)
     .bind(&p.cv_text)
+    .bind(p.is_default as i64)
     .bind(p.updated_at.to_rfc3339())
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// Liste les profils d'un utilisateur (profil par défaut en premier).
+pub async fn list_profiles(pool: &SqlitePool, user_id: &str) -> anyhow::Result<Vec<Profile>> {
+    let rows = sqlx::query(
+        "SELECT * FROM profiles WHERE user_id = ?1 ORDER BY is_default DESC, created_at ASC",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.iter().map(row_to_profile).collect())
+}
+
+/// Définit un profil comme profil par défaut de l'utilisateur (exclusif).
+pub async fn set_default_profile(
+    pool: &SqlitePool,
+    user_id: &str,
+    profile_id: &str,
+) -> anyhow::Result<()> {
+    sqlx::query("UPDATE profiles SET is_default = 0 WHERE user_id = ?1")
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    sqlx::query("UPDATE profiles SET is_default = 1 WHERE id = ?1 AND user_id = ?2")
+        .bind(profile_id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn delete_profile(
+    pool: &SqlitePool,
+    user_id: &str,
+    profile_id: &str,
+) -> anyhow::Result<bool> {
+    // Supprime aussi les données liées.
+    sqlx::query("DELETE FROM matches WHERE profile_id = ?1")
+        .bind(profile_id)
+        .execute(pool)
+        .await?;
+    sqlx::query("DELETE FROM applications WHERE profile_id = ?1")
+        .bind(profile_id)
+        .execute(pool)
+        .await?;
+    sqlx::query("DELETE FROM search_runs WHERE profile_id = ?1")
+        .bind(profile_id)
+        .execute(pool)
+        .await?;
+    let res = sqlx::query("DELETE FROM profiles WHERE id = ?1 AND user_id = ?2")
+        .bind(profile_id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    Ok(res.rows_affected() > 0)
+}
+
+/// Compte les profils d'un utilisateur (pour la limite).
+pub async fn count_profiles(pool: &SqlitePool, user_id: &str) -> anyhow::Result<i64> {
+    let n: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM profiles WHERE user_id = ?1")
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+    Ok(n)
 }
 
 pub async fn get_profile(pool: &SqlitePool, id: &str) -> anyhow::Result<Option<Profile>> {

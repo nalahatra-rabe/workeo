@@ -2,13 +2,60 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 // ─────────────────────────────────────────────────────────────
+// Utilisateurs & authentification
+// ─────────────────────────────────────────────────────────────
+
+/// Compte utilisateur (propriétaire d'un ou plusieurs profils).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct User {
+    pub id: String,
+    pub email: String,
+    pub full_name: String,
+    pub avatar_url: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RegisterRequest {
+    pub full_name: String,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AuthResponse {
+    pub user: User,
+    pub token: String,
+}
+
+/// Claims du JWT.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Claims {
+    /// Identifiant utilisateur.
+    pub sub: String,
+    /// Expiration (timestamp UNIX).
+    pub exp: usize,
+}
+
+// ─────────────────────────────────────────────────────────────
 // Profil utilisateur
 // ─────────────────────────────────────────────────────────────
 
 /// Représente un profil candidat tel que stocké en base.
+/// Un utilisateur peut posséder plusieurs profils (données distinctes).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
     pub id: String,
+    pub user_id: String,
+    /// Nom du profil (ex: "Développeur", "Alternance marketing").
+    pub name: String,
     pub full_name: String,
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -37,6 +84,8 @@ pub struct Profile {
     /// CV source
     pub cv_filename: Option<String>,
     pub cv_text: Option<String>,
+    /// Profil actif par défaut pour l'utilisateur.
+    pub is_default: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -66,6 +115,7 @@ pub struct Experience {
 /// Payload de création de profil (infos minimales ; le reste vient du CV/IA).
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateProfile {
+    pub name: Option<String>,
     pub full_name: String,
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -77,11 +127,13 @@ pub struct CreateProfile {
     pub salary_min: Option<i64>,
     /// Le cas échéant, texte de CV fourni directement.
     pub cv_text: Option<String>,
+    pub is_default: Option<bool>,
 }
 
 /// Payload de mise à jour (tous champs optionnels).
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct UpdateProfile {
+    pub name: Option<String>,
     pub full_name: Option<String>,
     pub email: Option<String>,
     pub phone: Option<String>,
@@ -93,6 +145,7 @@ pub struct UpdateProfile {
     pub salary_min: Option<i64>,
     pub skills: Option<Vec<String>>,
     pub target_roles: Option<Vec<String>>,
+    pub is_default: Option<bool>,
 }
 
 // ─────────────────────────────────────────────────────────────

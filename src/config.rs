@@ -5,6 +5,7 @@ use std::env;
 pub struct Config {
     pub port: u16,
     pub database_url: String,
+    pub jwt_secret: String,
     pub llm_provider: LlmProvider,
     pub ollama_base_url: String,
     pub ollama_model: String,
@@ -54,6 +55,8 @@ impl Config {
                 .unwrap_or(8080),
             database_url: env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "sqlite://data/workeo.db".into()),
+            jwt_secret: env::var("JWT_SECRET")
+                .unwrap_or_else(|_| "workeo-dev-secret-please-change".into()),
             llm_provider,
             ollama_base_url: env::var("OLLAMA_BASE_URL")
                 .unwrap_or_else(|_| "http://localhost:11434".into()),

@@ -97,7 +97,8 @@ L'application doit être **compréhensible en 2 minutes** :
 | DB           | SQLite via SQLx (WAL)               | Zéro installation, portable                 |
 | Scraping     | reqwest + scraper (CSS selectors)   | HTTP natif + parsing HTML robuste           |
 | IA           | Client LLM pluggable + fallback     | Marche **avec ou sans** clé/LLM             |
-| Front        | SPA HTML/CSS/JS vanilla + Tailwind  | UX premium, aucun build node                |
+| Auth         | Argon2id + JWT (jsonwebtoken)       | Comptes multi-utilisateurs sécurisés        |
+| Front        | React + TS (Vite/Tailwind/shadcn/ui)| UX premium, build → `web/` servi par Axum   |
 
 ### Pourquoi si rapide ?
 - **Recherche parallèle** : toutes les sources sont interrogées en `join_all` (concurrence).
@@ -125,7 +126,9 @@ Chaque agent utilise le **LLM client** s'il est disponible, sinon bascule sur de
 
 ## 5. Modèle de données
 
-- `profiles` : identité, résumé, séniorité, années d'XP, langues/formation/expériences (JSON),
+- `users` : compte (email unique, nom, mot de passe haché Argon2id).
+- `profiles` : rattaché à un `user` (`user_id`), nommé (`name`), avec un profil `is_default`.
+  Identité, résumé, séniorité, années d'XP, langues/formation/expériences (JSON),
   compétences, domaines, titres cibles, préférences (télétravail, contrat, salaire).
 - `jobs` : source, external_id, titre, entreprise, lieu, remote, description, URL, salaire,
   contrat, séniorité, catégorie, skills, dates, brut (JSON).
@@ -133,12 +136,22 @@ Chaque agent utilise le **LLM client** s'il est disponible, sinon bascule sur de
 - `applications` : suivi de candidature (statut, notes).
 - `search_runs` : historique des recherches (requête, lieu, sources, nb résultats).
 
+Chaque donnée métier (profil, recherche, match, candidature) est **isolée par profil**,
+et chaque profil appartient à un **utilisateur authentifié**.
+
 ---
 
 ## 6. API REST
 
+Authentification JWT : `Authorization: Bearer <token>` (ou cookie `workeo_token`).
+
 | Méthode | Route                              | Description                          |
 |---------|------------------------------------|--------------------------------------|
+| POST    | `/api/auth/register`               | Créer un compte                      |
+| POST    | `/api/auth/login`                  | Connexion (renvoie un JWT)           |
+| GET     | `/api/auth/me`                     | Utilisateur courant                  |
+| POST    | `/api/auth/logout`                 | Effacer le cookie de session         |
+| GET     | `/api/profiles`                    | Lister les profils de l'utilisateur  |
 | POST    | `/api/profiles`                    | Créer un profil                      |
 | GET     | `/api/profiles/:id`                | Lire un profil                       |
 | PUT     | `/api/profiles/:id`                | Mettre à jour                        |
@@ -164,6 +177,7 @@ OLLAMA_MODEL=llama3.1
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
+JWT_SECRET=change-me-in-production
 ```
 
 `LLM_PROVIDER=none` (ou LLM injoignable) → bascule automatique en mode heuristique.
@@ -176,6 +190,12 @@ OPENAI_MODEL=gpt-4o-mini
 cp .env.example .env
 cargo run --release
 # → http://localhost:8080
+```
+
+L'interface compilée est fournie dans `web/`. Pour la reconstruire :
+
+```bash
+cd frontend && pnpm install && pnpm build   # génère ../web
 ```
 
 Aucun service externe requis. Optionnel : Ollama pour l'IA locale.

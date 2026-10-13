@@ -1,4 +1,5 @@
 mod agents;
+mod auth;
 mod config;
 mod db;
 mod error;

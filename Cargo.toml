@@ -12,9 +12,15 @@ path = "src/main.rs"
 [dependencies]
 # Web / async
 axum = { version = "0.7", features = ["multipart", "macros"] }
+axum-extra = { version = "0.9", features = ["cookie"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs", "trace", "compression-gzip"] }
+
+# Auth & sécurité
+argon2 = "0.5"
+jsonwebtoken = "9.3"
+rand_core = { version = "0.6", features = ["getrandom"] }
 
 # Sérialisation
 serde = { version = "1", features = ["derive"] }

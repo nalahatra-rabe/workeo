@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Palette plate bleu & blanc (Tailwind blue / slate) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 22%;
+    --accent-foreground: 214 95% 93%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 24%;
+    --input: 217 33% 24%;
+    --ring: 217 91% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer utilities {
+  /* Barre de défilement discrète */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Grille de fond discrète pour les écrans d'authentification */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

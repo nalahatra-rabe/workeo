@@ -2,6 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::Json;
 use serde::Deserialize;
 
+use crate::auth::AuthUser;
 use crate::db;
 use crate::error::{AppError, AppResult};
 use crate::models::{Job, ScoredJob};
@@ -20,6 +21,7 @@ pub struct ListJobsQuery {
 /// GET /api/jobs — liste filtrée d'offres (exploration libre).
 pub async fn list_jobs(
     State(state): State<AppState>,
+    _auth: AuthUser,
     Query(q): Query<ListJobsQuery>,
 ) -> AppResult<Json<Vec<Job>>> {
     let limit = q.limit.unwrap_or(50).clamp(1, 200);
@@ -56,14 +58,23 @@ pub async fn list_jobs(
 /// GET /api/jobs/:id — détail d'une offre (enrichi du score si profil fourni).
 pub async fn get_job(
     State(state): State<AppState>,
+    auth: AuthUser,
     Path(id): Path<String>,
     Query(params): Query<JobDetailQuery>,
 ) -> AppResult<Json<ScoredJob>> {
     let job = db::get_job(&state.pool, &id).await?.ok_or(AppError::NotFound)?;
     let (score, reasons) = if let Some(pid) = params.profile_id {
-        match db::get_match(&state.pool, &pid, &id).await? {
-            Some(m) => (m.score, m.reasons),
-            None => (0, vec![]),
+        // Vérifie l'appartenance du profil.
+        if let Some(p) = db::get_profile(&state.pool, &pid).await? {
+            if p.user_id != auth.user_id {
+                return Err(AppError::NotFound);
+            }
+            match db::get_match(&state.pool, &pid, &id).await? {
+                Some(m) => (m.score, m.reasons),
+                None => (0, vec![]),
+            }
+        } else {
+            (0, vec![])
         }
     } else {
         (0, vec![])
