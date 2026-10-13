@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { AccountMenu } from '@/components/layout/account-menu'
 import { ProfileSwitcher } from '@/components/layout/profile-switcher'
 import { Button } from '@/components/ui/button'
@@ -144,6 +145,7 @@ export function AppLayout() {
             {title}
           </h1>
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <ProfileSwitcher />
             <AccountMenu />
           </div>

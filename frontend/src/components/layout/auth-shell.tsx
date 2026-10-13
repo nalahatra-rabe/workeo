@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from 'react'
 
 import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const FEATURES = [
   {
@@ -110,7 +111,10 @@ export function AuthShell({
       </div>
 
       {/* Formulaire */}
-      <div className="flex flex-1 items-center justify-center px-5 py-10">
+      <div className="relative flex flex-1 items-center justify-center px-5 py-10">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}

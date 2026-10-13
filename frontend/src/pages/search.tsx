@@ -7,6 +7,7 @@ import {
   Filter,
   Layers,
   Loader2,
+  LocateFixed,
   MapPin,
   Radar,
   Search,
@@ -62,6 +63,7 @@ export function SearchPage() {
   const [ran, setRan] = useState(false)
   const [selected, setSelected] = useState<ScoredJob | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [locating, setLocating] = useState(false)
 
   useEffect(() => {
     setLocation(activeProfile?.location ?? '')
@@ -100,9 +102,64 @@ export function SearchPage() {
     )
   }
 
+  /** Géolocalisation : remplit la localisation via reverse geocoding. */
+  function useMyLocation() {
+    if (!('geolocation' in navigator)) {
+      toast.error('Géolocalisation non supportée par ce navigateur.')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        const fallback = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=fr`,
+          )
+          if (res.ok) {
+            const data = await res.json()
+            const a = data.address ?? {}
+            const city =
+              a.city || a.town || a.village || a.municipality || a.county
+            setLocation([city, a.country].filter(Boolean).join(', ') || fallback)
+          } else {
+            setLocation(fallback)
+          }
+        } catch {
+          setLocation(fallback)
+        } finally {
+          setLocating(false)
+          toast.success('Position détectée')
+        }
+      },
+      () => {
+        setLocating(false)
+        toast.error('Localisation refusée ou indisponible.')
+      },
+      { timeout: 8000 },
+    )
+  }
+
+  /** Notification navigateur à la fin d'une recherche. */
+  function notifySearchDone(total: number) {
+    if (!('Notification' in window)) return
+    if (Notification.permission !== 'granted') return
+    try {
+      new Notification('Workeo — recherche terminée', {
+        body: `${total} offre(s) classée(s) par les agents.`,
+      })
+    } catch {
+      /* ignoré */
+    }
+  }
+
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault()
     if (!activeProfile) return
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
     setSearching(true)
     setRan(false)
     setResults([])
@@ -133,6 +190,7 @@ export function SearchPage() {
         toast.success(`${res.total} offres classées`, {
           description: 'Les agents ont terminé leur analyse.',
         })
+        notifySearchDone(res.total)
       }
     } catch (err) {
       toast.error('Recherche impossible', {
@@ -202,10 +260,26 @@ export function SearchPage() {
                   <Input
                     id="location"
                     placeholder="Paris, France"
-                    className="pl-9"
+                    className="pl-9 pr-10"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={useMyLocation}
+                    disabled={locating}
+                    aria-label="Utiliser ma position"
+                    title="Utiliser ma position"
+                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {locating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <LocateFixed className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
               <div className="space-y-2">

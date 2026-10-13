@@ -21,7 +21,8 @@ TypeScript** (Vite, Tailwind CSS, shadcn/ui, icônes Lucide) servie par le backe
   compétences, contrat, télétravail et salaire.
 - ⭐ **Score de compatibilité** (0-100) avec **explications concrètes** pour chaque offre.
 - 📬 **Suivi de candidatures** (kanban : sauvegardées → postulées → entretiens → offres).
-- 🎨 **UI moderne** — palette plate bleu & blanc, icônes Lucide, onboarding animé.
+- 🎨 **UI moderne** — palette plate bleu & blanc, icônes Lucide, onboarding animé,
+  thème clair/sombre, géolocalisation, notifications navigateur.
 - 🔌 **Fonctionne sans IA externe** : si aucun LLM n'est configuré, un moteur
   heuristique local prend le relais. Avec **Ollama** ou une **API compatible OpenAI**,
   les agents utilisent un vrai LLM.
